@@ -1,0 +1,83 @@
+# Philips 55PUT7906/57 (CEC name; ro.product.model "2020/2021 UHD Android TV", TPV-built, board PH0M_EA_T32,
+# MediaTek/MStar m7332), Colombia
+# Android TV 11 (shipped with 10, first_api_level 29), firmware RTM2.210929.098, built 2023-02-16,
+# security patch 2023-01-05. ro.product.model=2020/2021 UHD Android TV, manufacturer TPV.
+# Fingerprint: Philips/PH0M_EA_T32/PH0M_EA_T32:11/RTM2.210929.098/200482:user/release-keys
+# 4x Cortex-A53 on a 32-bit kernel (4.19), armeabi-v7a userspace, 1.35 GB RAM, 4 GB /data.
+#
+# NOT the TP Vision platform of examples/philips-50pus8517 (PH1M_EA_9970A) and friends: this is the
+# TPV/MediaTek "wwtv" stack. Live TV is com.mediatek.wwtv.tvcenter, the TV service is org.droidtv
+# (TPVTvService), and only part of the org.droidtv layer is present. 21 of the 43 packages in the
+# two Philips Android TV 11 lists exist here. Check your own `pm list packages` against this file.
+#
+# Apply:   TV_HOST=<tv ip> tools/disable.sh examples/philips-ph0m-ea-t32/debloat.txt
+# Undo:    TV_HOST=<tv ip> tools/restore.sh examples/philips-ph0m-ea-t32/debloat.txt com.google.android.tvlauncher
+# Everything is DISABLED, not uninstalled. Comment out any line you want to keep.
+#
+# Stock launcher: com.google.android.tvlauncher. This set ran Free My TV as Home, which turns off
+# tvlauncher, tvrecommendations, play.games, youtube.tvmusic and fusion.android.tv.demo itself, so
+# those are not in this list. With this repo's launcher, add them as the other Philips lists do.
+# The 15 uk.co.freeview.* apps, ZDF, ARD, ivi and Rakuten (tv.wuaki.apptv) ship disabled.
+#
+# QUIRKS ON THIS FIRMWARE:
+#
+# 1. com.android.tv.settings/.device.privacy.PrivacyActivity is the FACTORY RESET screen here, not
+#    privacy. Do not start settings activities by name to find a page. Usage & diagnostics is under
+#    Device Preferences; the ad ID page is the com.google.android.gms.settings.ADS_PRIVACY action
+#    (a phone-style page: the focus is invisible, so use uiautomator dump + input tap).
+# 2. `screencap -p` on stdout starts with a text line ("Init wrapper sys mutex successful...")
+#    before the PNG. Strip everything before \x89PNG.
+# 3. The Wi-Fi saved during setup belongs to setupwraith: keep it enabled (or forget and re-join
+#    the network first). Free My TV's switch refuses to run until the network is re-joined.
+# 4. The default keyboard resets at every boot to com.google.android.tv.remote.service/.ImeBridgeService
+#    when the chosen one lives in /data (LeanKeyboard here): Android picks a direct-boot-aware IME
+#    before the user unlocks. Something has to set it back after boot. Play Store updates of Gboard
+#    (17.x) broke the keyboard on this Android 11 build; the factory 11.0.02 works.
+# 5. Remote: Netflix=KEYCODE 265, YouTube=249 (scan 123), Prime=249 (scan 470). The Google Play
+#    button is IR scan 127 (KEY_COMPOSE) with no key code: TPVTvService consumes it before any key
+#    filter and opens com.google.android.videos (Play Movies, shut down by Google in Dec 2023, it only
+#    redirects to the stock launcher's Shop tab), per the read-only /vendor/etc/hot-key-info.ini.
+#    TPVTvService logs every press ("LogKeyPressEvent: KeyCode=0,scan=127"), which an app holding
+#    READ_LOGS (pm grant) can follow to open something else.
+# 6. TPVTvService also logs every key press as "usagelogger"; its upload target (NetTV logger) is
+#    gone with nettvregistration disabled. The firmware carries Alphonso/Samba ACR support inside
+#    TPVTvService, not as a package: persist.odm.tpv.sys.ACR_Avail is 0 for Colombia.
+# 7. Every volume change was spoken in English ("volume change X percent") by com.mediatek.tv.freeviewplay
+#    (UK Freeview Play, TTSManagerImpl2 -> Google TTS), even with accessibility off and no menu switch for
+#    it anywhere (Android Accessibility, the Live TV menu, Sound). The package is PERSISTENT, so its process
+#    still starts after `pm disable-user`, but once disabled and rebooted it no longer speaks. Live TV
+#    (tvcenter, which binds its FreeviewPlayManagerService) still works. Reboot-checked.
+# 8. Disabling nettvregistration logs one "Scheduling restart of crashed service" per service and
+#    then stays quiet; nothing crash-loops. Reboot-checked: every package below stays disabled.
+#
+# Settings also changed on this set (not packages): AdGuard Private DNS (dns.adguard-dns.com),
+# animation scales 0.5, advertising ID deleted, Usage & diagnostics off.
+
+# TPV/TP Vision telemetry and promo injection
+org.droidtv.candeebug                                  # "DAC" analytics uploader
+org.droidtv.gel                                        # metrics collector, runs in candeebug's process
+org.droidtv.tv.frameworklogger                         # framework/reboot logger, started on boot, nothing binds it
+org.droidtv.nettv.market                               # Philips app gallery; Play Store stays
+com.mediatek.android.leanbacklauncher.partnercustomizer # injects partner apps and rows into the stock Home
+com.tpv.xmic.ots.cms.client                            # TPV CMS client: boot receiver + INTERNET, put a tile in the favourites row
+org.droidtv.nettvregistration                          # NetTV sign-on/registration
+org.droidtv.tv.packageinfo                             # reports the installed package list (INTERNET)
+
+# Google extras
+com.google.android.feedback                            # feedback/bug report uploader
+com.google.android.backdrop                            # Ambient mode screensaver (Free My TV has its own)
+com.google.android.partnersetup                        # partner referrer / attribution
+com.google.android.onetimeinitializer                  # runs once at first setup, nothing afterwards
+com.google.android.sss.authbridge                      # set-up-from-phone helper
+com.google.android.syncadapters.calendar               # Calendar sync; no calendar app on the TV
+com.google.android.videos                              # Play Movies: closed in Dec 2023 (see quirk 5)
+
+# MediaTek UK leftovers
+com.mediatek.tv.freeviewplay                           # Freeview Play: spoke every volume change (quirk 7); takes effect after a reboot
+
+# By the owner's choice (comment out what you use)
+com.google.android.youtube.tvkids                      # YouTube Kids
+
+# KEPT on purpose: org.droidtv.icp (system UID, sign-on receiver, unclear), org.droidtv.eum (Help),
+# com.google.android.tungsten.setupwraith (quirk 3), katniss (the remote's mic button),
+# mediashell (Chromecast), com.android.tv.ota (updates), TalkBack.
