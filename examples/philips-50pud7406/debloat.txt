@@ -3,6 +3,9 @@
 # ro.product.model=2020/2021 UHD Android TV  ro.product.device=PH0M_EA_T32  ro.product.name=PH0M_LT_T32
 # Fingerprint: Philips/PH0M_LT_T32/PH0M_EA_T32:11/RTM2.210929.098/200321:user/release-keys
 # persist.odm.tpv.region=lt (Latin America). About 1.38 GB RAM, ro.config.low_ram=true.
+# Another unit: Philips 55PUT7906/57 (its HDMI-CEC name), Colombia. Same ro.product.device=PH0M_EA_T32
+# and build RTM2.210929.098 (built 2023-02-16, security patch 2023-01-05), but ro.product.name=PH0M_EA_T32
+# and incremental 200482. 4x Cortex-A53, 32-bit kernel 4.19, 1.35 GB RAM. See "Colombia unit" below.
 #
 # Same board and firmware as docs/devices/philips-65pug7406-78.md, which is launcher notes only;
 # this is the first debloat list for PH0M_EA_T32. It is NOT the TP Vision org.droidtv platform of
@@ -45,15 +48,42 @@
 # 4. Do not open com.mediatek.tv.factory or mediatek.factorymenu.ui to see what they do (see
 #    PROMPT.md); they are left alone.
 
+# COLOMBIA UNIT (55PUT7906/57, Spanish UI). Lived with for two days, reboot-checked: every package
+# below that is not commented out stays disabled. Home was Free My TV, not launcher/, which turns off
+# tvlauncher, tvrecommendations, play.games, youtube.tvmusic and the retail demo itself. The owner kept
+# mediashell (Chromecast, own network), Netflix, Prime Video and katniss. org.droidtv.nettvregistration
+# was disabled here: one "Scheduling restart of crashed service" per service, then quiet, across reboots,
+# but no firmware update has been offered since, so it stays commented out below. eum was kept.
+# The packages marked "Colombia unit" below were added from this TV. Private DNS works.
+# What else this unit showed:
+# - com.android.tv.settings/.device.privacy.PrivacyActivity is the FACTORY RESET screen on this
+#   firmware, not privacy. Do not start settings activities by name to find a page.
+# - Every volume change was spoken in English ("volume change X percent") by com.mediatek.tv.freeviewplay
+#   (UK Freeview Play, via Google TTS), with accessibility off and no switch for it in any menu. It is a
+#   persistent package, so its process still starts after `pm disable-user`, but after a reboot it no
+#   longer speaks. Live TV (tvcenter binds its FreeviewPlayManagerService) still works.
+# - The remote's Google Play button is IR scan 127 with no key code: TPVTvService consumes it and opens
+#   com.google.android.videos (Play Movies, shut down in Dec 2023), per the read-only
+#   /vendor/etc/hot-key-info.ini. No key filter sees it; TPVTvService logs each press
+#   ("KeyCode=0,scan=127"), which an app granted READ_LOGS can follow. Netflix is key code 265; YouTube
+#   and Prime are both 249 (scan 123 and 470).
+# - The default keyboard goes back to com.google.android.tv.remote.service/.ImeBridgeService at every
+#   boot when the chosen one is a downloaded app (LeanKeyboard here). Play Store updates of Gboard (17.x)
+#   broke typing on this build; the factory 11.0.02 works.
+# - `screencap -p` to stdout starts with a text line ("Init wrapper sys mutex successful...") before
+#   the PNG; strip everything before PNG.
+# - persist.odm.tpv.sys.ACR_Avail is 0 for Colombia; the ACR code lives inside TPVTvService, not a package.
+
 # TPV / Philips telemetry
 org.droidtv.candeebug                       # "DAC" analytics uploader, as on the 50PUS8517
 org.droidtv.gel                             # metrics collector running in candeebug's process
 org.droidtv.tv.frameworklogger              # persistent TPV logger: GET_TOP_ACTIVITY_INFO, EPG read, boot receiver
 com.tpv.xmic.ots.cms.client                 # TPV "CMS client" 0.6.04_ad: INTERNET, boot receiver, channel/EPG write
+org.droidtv.tv.packageinfo                  # reports the installed package list, INTERNET (Colombia unit)
 
 # Philips content, store and demo
 org.droidtv.nettv.market                    # app gallery storefront
-# org.droidtv.nettvregistration               # Smart TV registration (OilProvider/StateProvider); kept on the 50PUS8517 for firmware updates -- re-enable if an update check fails
+# org.droidtv.nettvregistration               # Smart TV registration (OilProvider/StateProvider); kept on the 50PUS8517 for firmware updates -- re-enable if an update check fails; disabled on the Colombia unit, no update offered since
 org.droidtv.android.fitness                 # Fitness Buddy
 # org.droidtv.eum                             # e-manual; on this board there is no xtv binding to it and no retry loop at idle (checked), but the Source key is untested
 fusion.android.tv.demo                      # retail demo
@@ -65,6 +95,16 @@ com.google.android.tvrecommendations        # recommendation rows and notificati
 com.google.android.backdrop                 # ambient-mode screensaver; see quirk 1 (44 MB data + 36 MB cache)
 com.google.android.apps.mediashell          # Chromecast built-in; see quirk 2
 
+# Google setup and sync leftovers (Colombia unit)
+com.google.android.feedback                 # feedback/bug report uploader
+com.google.android.partnersetup             # partner referrer / attribution
+com.google.android.onetimeinitializer       # runs once at first setup, nothing afterwards
+com.google.android.sss.authbridge           # set-up-from-phone helper
+com.google.android.syncadapters.calendar    # Calendar sync; no calendar app on the TV
+
+# MediaTek UK leftovers
+com.mediatek.tv.freeviewplay                # Freeview Play: spoke every volume change on the Colombia unit; takes effect after a reboot
+
 # Google apps this owner does not use
 com.google.android.videos
 com.google.android.youtube.tvmusic
@@ -74,6 +114,7 @@ com.google.android.play.games
 com.netflix.ninja
 com.amazon.amazonvideo.livingroom
 com.spotify.tv.android
+# com.google.android.youtube.tvkids          # YouTube Kids, off by the Colombia unit's owner
 
 # Stock launcher, replaced by launcher/ -- build-and-install disables it after Home has moved
 # com.google.android.tvlauncher
